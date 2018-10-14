@@ -1,4 +1,4 @@
-require("dotenv").config();
+// require("dotenv").config(); // на сервере heroku есть свой конфиг с переменными, все переменные нужно перенести туда
 
 const express = require("express");
 const app = express();
