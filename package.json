@@ -13,6 +13,7 @@
   "dependencies": {
     "dotenv": "^6.1.0",
     "https-proxy-agent": "^2.2.1",
-    "node-fetch": "^2.2.0"
+    "node-fetch": "^2.2.0",
+    "querystringify": "^2.1.0"
   }
 }
