@@ -6,15 +6,25 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 5000
 
-const fetch = require("node-fetch");
-const HttpsProxyAgent = require("https-proxy-agent");
-const qs = require("querystringify");
+const TelegramBot = require('node-telegram-bot-api');
 
-const API = "https://api.telegram.org/bot";
-const PROXY = process.env.PROXY || ""; // прокси бесплатные беру тут https://hidemyna.me/ru/proxy-list/?type=s#list  https://www.sslproxies.org/ , платные прокси можно вынести в конфиг
+// const PROXY = process.env.PROXY || "";
 let TOKEN = process.env.TOKEN || "";
-const BASE_URL = `${API}${TOKEN}/`; // https://api.telegram.org/bot<token>/
-let url = "";
+const url = `https://${process.env.HEROKU_APP_NAME}.herokuapp.com`;
+
+// При использовании getUpdates
+// а также в России telegram заблокирован, поэтому нужно использовать proxy
+// const bot = new TelegramBot(TOKEN, {
+//     polling: true,
+//     request: {
+//         proxy: PROXY
+//     },
+// });
+
+// При использовании WebHook
+const bot = new TelegramBot(TOKEN);
+
+bot.setWebHook(`${url}/bot${TOKEN}`);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -26,13 +36,9 @@ app.get("/", (req, res) => {
 
 // POST method route
 app.post("/", (req, res) => {
-    // res.send("POST request to the homepage");
-    let data = req.body;
-    let chat_id = data.message.chat.id;
-    sendRequest("sendMessage", { "chat_id": chat_id, "text": new Date().toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) })
-        .catch(ex => console.log(ex.message));
-
-    res.status(200).end();
+    bot.processUpdate(req.body);
+    // res.status(200).end();
+    res.sendStatus(200);
 });
 
 app.use((req, res, next) => {
@@ -47,6 +53,18 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => console.log("Server start"));
 
 
+
+// Listen for any kind of message. There are different kinds of messages.
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    let time = new Date().toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    // send a message to the chat acknowledging receipt of their message
+    bot.sendMessage(chatId, time);
+});
+
+
+
+/* 
 const sendRequest = async (method, params = {}) => {
 
     url = `${BASE_URL}${method}`; // https://api.telegram.org/bot<token>/METHOD_NAME
@@ -74,3 +92,4 @@ const sendRequest = async (method, params = {}) => {
         console.log("error: ", error);
     }
 }
+ */
