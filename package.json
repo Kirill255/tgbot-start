@@ -12,7 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.16.4",
-    "node-telegram-bot-api": "^0.30.0"
+    "node-fetch": "^2.2.0",
+    "node-telegram-bot-api": "^0.30.0",
+    "request": "^2.88.0"
   },
   "engines": {
     "node": "8.12.0"

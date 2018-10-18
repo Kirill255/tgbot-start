@@ -1,23 +1,32 @@
-// перед деплоем на хероку нужно не забывать удалять dotenv из зависимостей(dependencies) и закомментировать/удалить эту строчку, инчае будут конфликтовать dotenv из проекта и встроенный на хероку сервере dotenv(или что там используется для чтения env конфига), но для локальной разработки он нам нужен
-// upd: чтобы каждый раз не удалять/устанавливать пакет dotenv, установил его в devDependencies, так как хероку по умолчанию не устанавливает зависимости из этой секции
-// require("dotenv").config(); // на сервере heroku есть свой конфиг с переменными, все переменные нужно перенести туда
 
+require("dotenv").config();
+
+const fs = require("fs");
 const express = require("express");
+const fetch = require('node-fetch');
+const request = require('request');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// это временная мера, в следующем обновлении node-telegram-bot-api, это будет не нужно
-process.env.NTBA_FIX_319 = 1;   // fix cancellation of promises https://github.com/yagop/node-telegram-bot-api/issues/319. module.js:652:30
+// temporally fix cancellation of promises https://github.com/yagop/node-telegram-bot-api/issues/319. module.js:652:30
+process.env.NTBA_FIX_319 = 1;
+// temporally fix https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files
+process.env.NTBA_FIX_350 = 1;
 
 const TelegramBot = require('node-telegram-bot-api');
 
 let TOKEN = process.env.TOKEN || "";
-const url = `https://${process.env.HEROKU_APP_NAME}.herokuapp.com`;
+const PROXY = process.env.PROXY || "";
 
-// При использовании WebHook
-const bot = new TelegramBot(TOKEN);
+// https://github.com/yagop/node-telegram-bot-api/blob/master/examples/polling.js
 
-bot.setWebHook(`${url}/bot${TOKEN}`, {});
+const bot = new TelegramBot(TOKEN, {
+    polling: true,
+    request: {
+        proxy: PROXY
+    },
+});
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -28,11 +37,11 @@ app.get("/", (req, res) => {
 });
 
 // POST method route
-app.post(`/bot${TOKEN}`, (req, res) => {
-    bot.processUpdate(req.body);
-    // res.status(200).end();
-    res.sendStatus(200);
-});
+// app.post(`/bot${TOKEN}`, (req, res) => {
+//     bot.processUpdate(req.body);
+//     // res.status(200).end();
+//     res.sendStatus(200);
+// });
 
 app.use((req, res, next) => {
     res.status(404).send("Not found!");
@@ -46,12 +55,123 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => console.log("Server start"));
 
 
+// библиотека node-telegram-bot-api при отправке файлов работает со стримами, буффером, урлом https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files, поэтому для отправки файлов вам нужно на это ориентироваться, например библиотека request очень хорошо работает со стримами, можно получить файл простым запросом `const file = request(url);` и дальше сразу передать его боту, а например библиотека node-fetch может работать с буффером, поэтому после получения файла, нужно сначала преобразовать его в буффер, а затем передовать боту ( помоему она может работать и со стримами, но не так очевидно как request ), в общем при выборе библиотеки для запросов, нужно понимать как они работают под капотом и какие возможности предоставляют
+
 // Listen for any kind of message. There are different kinds of messages.
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+    bot.sendMessage(chatId, "Я бот");
+});
+
+bot.onText(/\/menu/, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                [{ text: "Оставить свой телефон", request_contact: true }],
+                [{ text: "Получить картинку" }, { text: "Получить аудио" }],
+                ["Сколько время"],
+            ]
+        })
+    };
+    bot.sendMessage(chatId, 'Меню заказывали?', opts);
+});
+
+bot.onText(/Получить картинку/, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                [
+                    { text: "С собачкой" },
+                    { text: "С котиком" },
+                    { text: "С мишкой" }
+                ],
+                ["/menu"]
+            ]
+        })
+    };
+    bot.sendMessage(chatId, 'Меню заказывали?', opts);
+});
+
+bot.onText(/С собачкой/, async (msg) => {
+    const chatId = msg.chat.id;
+
+    // напрямую передаём просто ссылку на файл
+
+    // const url = "http://infobreed.ru/foto_breed/126/pincher3.jpg";
+    // bot.sendPhoto(chatId, url, {
+    //     caption: "Вот собачка!"
+    // });
+
+    // node-fetch and convert to buffer
+
+    // fetch('http://infobreed.ru/foto_breed/126/pincher3.jpg')
+    //     .then((response) => response.buffer())
+    //     .then((buffer) => {
+    //         console.log('data :', buffer);
+    //         bot.sendPhoto(chatId, buffer, {
+    //             caption: "Вот собачка!"
+    //         });
+    //     })
+    //     .catch((error) => console.log('error: ', error));
+
+    // node-fetch and convert to buffer (async/await)
+
+    // try {
+    //     let response = await fetch('http://infobreed.ru/foto_breed/126/pincher3.jpg');
+    //     let buffer = await response.buffer();
+    //     bot.sendPhoto(chatId, buffer, {
+    //         caption: "Вот собачка!"
+    //     });
+    // } catch (error) {
+    //     console.log('error: ', error);
+    // }
+
+    // request (works by default with streams)
+
+    const url = 'http://infobreed.ru/foto_breed/126/pincher3.jpg';
+    const photo = request(url);
+    // bot.sendPhoto(chatId, photo); // send just photo, without caption
+    bot.sendPhoto(chatId, photo, { // send as image
+        caption: "Вот собачка!"
+    });
+});
+
+bot.onText(/С котиком/, (msg) => {
+    const chatId = msg.chat.id;
+    const photo = "http://oboi.cc/1440-900-100-uploads/new/big/oboik.ru_8187.jpg";
+    bot.sendPhoto(chatId, photo, {
+        caption: "Вот котик!"
+    });
+});
+
+bot.onText(/С мишкой/, (msg) => {
+    const chatId = msg.chat.id;
+    const photo = "http://price-top.ru/public/images/products/309/59/58558/641ffab083.jpg";
+    bot.sendPhoto(chatId, photo, {
+        caption: "Вот мишка!"
+    });
+});
+
+bot.onText(/Сколько время/, (msg) => {
+    const chatId = msg.chat.id;
     let time = new Date().toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    // send a message to the chat acknowledging receipt of their message
     bot.sendMessage(chatId, time);
+});
+
+bot.onText(/Получить аудио/, (msg) => {
+    // From HTTP request
+    const url = 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg';
+    const audio = request(url);
+    bot.sendAudio(msg.chat.id, audio);
 });
 
 
