@@ -60,8 +60,36 @@ app.listen(PORT, () => console.log("Server start"));
 // Listen for any kind of message. There are different kinds of messages.
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
-    // console.log('msg :', msg);
-    bot.sendMessage(chatId, "Я бот");
+
+    if (msg.text) {
+        let hello = "привет";
+        if (msg.text.toString().toLowerCase().indexOf(hello) === 0) {
+            let name = msg.from.first_name;
+            bot.sendMessage(chatId, `Привет дорогой пользователь ${name}`);
+        }
+
+        let bye = "пока";
+        if (msg.text.toString().toLowerCase().includes(bye)) {
+            let name = msg.from.first_name;
+            bot.sendMessage(chatId, `Надеюсь ещё увидимся, пока ${name}`);
+        }
+    }
+
+    console.log('msg :', msg);
+    bot.sendMessage(chatId, "Я клёвый бот");
+});
+
+bot.onText(/\/start/, (msg) => {
+    const opts = {
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                ["/menu", "/help"],
+            ]
+        })
+    };
+    bot.sendMessage(msg.chat.id, "Welcome", opts);
 });
 
 bot.onText(/\/menu/, (msg) => {
@@ -81,6 +109,20 @@ bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(chatId, 'Меню заказывали?', opts);
 });
 
+bot.onText(/\/help/, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                ["/menu"],
+            ]
+        })
+    };
+    bot.sendMessage(chatId, 'Просто нажмите меню!', opts);
+});
+
 bot.onText(/Получить картинку/, (msg) => {
     const chatId = msg.chat.id;
     const opts = {
@@ -98,7 +140,7 @@ bot.onText(/Получить картинку/, (msg) => {
             ]
         })
     };
-    bot.sendMessage(chatId, 'Меню заказывали?', opts);
+    bot.sendMessage(chatId, 'Картинку с кем?', opts);
 });
 
 bot.onText(/С собачкой/, async (msg) => {
@@ -174,6 +216,24 @@ bot.onText(/Получить аудио/, (msg) => {
     bot.sendAudio(msg.chat.id, audio);
 });
 
+bot.on("contact", (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+
+    // можно взять контакты юзера и положить в базу например
+    // можно взять сразу целый объект или отдельно по свойствам
+    let user_info = msg.contact;
+    // let phone = msg.contact.phone_number;
+    console.log('user_info :', user_info);
+
+    bot.sendMessage(chatId, "Спасибо за телефон");
+});
+
+
+bot.on('polling_error', (error) => {
+    console.log("=== polling_error ===");
+    console.log(error);
+});
 
 // error handling
 process.on("uncaughtException", (error) => {
