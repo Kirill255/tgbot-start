@@ -75,7 +75,7 @@ bot.on('message', (msg) => {
         }
     }
 
-    console.log('msg :', msg);
+    // console.log('msg :', msg);
     bot.sendMessage(chatId, "Я клёвый бот");
 });
 
@@ -227,6 +227,41 @@ bot.on("contact", (msg) => {
     console.log('user_info :', user_info);
 
     bot.sendMessage(chatId, "Спасибо за телефон");
+});
+
+bot.on("sticker", (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+    const opts = {
+        reply_to_message_id: msg.message_id
+    };
+    // bot.sendMessage(chatId, "Я люблю стикеры!", opts);
+    // bot.sendSticker(chatId, "CAADAgADMgoAAm4y2AAB_W-265DwO00C", opts); // отправляем конкретный стикер с конкретным id
+
+    // или вот так, можно получить целый набор стикеров
+    // bot.getStickerSet("ci_cat")
+    //     .then(stickers => console.log('stickers :', stickers));
+
+
+    // будем отправлять рендомный стикер из одного из указанных наборов
+    // цепочка промисов нужна чтобы ответы шли один после другого, а не отправлялись как попало
+    bot.sendMessage(chatId, "Я люблю стикеры!", opts)
+        .then(_ => { // неважно что возвращается, нам просто нужно упорядочить ответы в telegram
+
+            const stickerPacks = ["ci_cat", "GoodBoyResistance", "podslushano"]; // добавьте название любого стикерпака
+            let stickerPack = stickerPacks[Math.floor(Math.random() * stickerPacks.length)];
+            // console.log('stickerPack :', stickerPack);
+
+            bot.getStickerSet(stickerPack)
+                .then(stickersSet => {
+                    // console.log('stickersSet :', stickersSet);
+                    let stickers = stickersSet.stickers; // берём массив со стикерами
+                    let packLength = stickers.length; // его длина
+                    let stickerItem = stickers[Math.floor(Math.random() * packLength)]; // рендомный стикер-объект из этого массива
+                    let stickerId = stickerItem.file_id; // его id-name
+                    bot.sendSticker(chatId, stickerId);
+                });
+        });
 });
 
 
