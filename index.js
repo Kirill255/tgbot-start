@@ -316,7 +316,16 @@ bot.on("contact", (msg) => {
     // let phone = msg.contact.phone_number;
     console.log('user_info :', user_info);
 
-    bot.sendMessage(chatId, "Спасибо за телефон");
+
+    const opts = {
+        reply_to_message_id: msg.message_id
+    };
+
+    bot.sendMessage(chatId, "Спасибо за ваш телефон, ловите и наши контакты.", opts);
+
+    let phoneNumber = "+7 987 654 32 11"
+    let firstName = "Mr.Bot"
+    bot.sendContact(chatId, phoneNumber, firstName, opts)
 });
 
 bot.on("sticker", (msg) => {
