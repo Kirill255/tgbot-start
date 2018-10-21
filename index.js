@@ -16,7 +16,7 @@ process.env.NTBA_FIX_350 = 1;
 const TelegramBot = require('node-telegram-bot-api');
 
 let TOKEN = process.env.TOKEN || "";
-const PROXY = process.env.PROXY || "";
+const PROXY = process.env.PROXY || ""; // https://hidemyna.me/ru/proxy-list/?type=s#list
 
 // https://github.com/yagop/node-telegram-bot-api/blob/master/examples/polling.js
 
@@ -57,27 +57,6 @@ app.listen(PORT, () => console.log("Server start"));
 
 // библиотека node-telegram-bot-api при отправке файлов работает со стримами, буффером, урлом https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files, поэтому для отправки файлов вам нужно на это ориентироваться, например библиотека request очень хорошо работает со стримами, можно получить файл простым запросом `const file = request(url);` и дальше сразу передать его боту, а например библиотека node-fetch может работать с буффером, поэтому после получения файла, нужно сначала преобразовать его в буффер, а затем передовать боту ( помоему она может работать и со стримами, но не так очевидно как request ), в общем при выборе библиотеки для запросов, нужно понимать как они работают под капотом и какие возможности предоставляют
 
-// Listen for any kind of message. There are different kinds of messages.
-bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-
-    if (msg.text) {
-        let hello = "привет";
-        if (msg.text.toString().toLowerCase().indexOf(hello) === 0) {
-            let name = msg.from.first_name;
-            bot.sendMessage(chatId, `Привет дорогой пользователь ${name}`);
-        }
-
-        let bye = "пока";
-        if (msg.text.toString().toLowerCase().includes(bye)) {
-            let name = msg.from.first_name;
-            bot.sendMessage(chatId, `Надеюсь ещё увидимся, пока ${name}`);
-        }
-    }
-
-    // console.log('msg :', msg);
-    bot.sendMessage(chatId, "Я клёвый бот");
-});
 
 bot.onText(/\/start/, (msg) => {
     const opts = {
@@ -102,7 +81,7 @@ bot.onText(/\/menu/, (msg) => {
             keyboard: [
                 [{ text: "Оставить свой телефон", request_contact: true }],
                 [{ text: "Получить картинку" }, { text: "Получить аудио" }],
-                ["Сколько время"],
+                ["Сколько время", "Погода"],
             ]
         })
     };
@@ -121,6 +100,65 @@ bot.onText(/\/help/, (msg) => {
         })
     };
     bot.sendMessage(chatId, 'Просто нажмите меню!', opts);
+});
+
+
+// Listen for any kind of message. There are different kinds of messages.
+bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+
+    // событие "message" универсальное, срабатывает на сообщения любого типа, для обработки конкретного типа лучше всего воспользоваться нужным событием https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#events , при использовании события "message" стоит делать некоторые проверки, например при описании логики ответа на текстовые сообщения стоит проверять `if (msg.text)`, так как без этой проверки будет выпадать ошибка, при принятии какого-либа сообщения с типом у которого нет поля "text", например "Contact"
+    /* 
+    let hello = "привет";
+    if (msg.text.toString().toLowerCase().indexOf(hello) === 0) {
+        let name = msg.from.first_name;
+        bot.sendMessage(chatId, `Привет дорогой пользователь ${name}`);
+    }
+    */
+
+    bot.sendMessage(chatId, "Я клёвый бот");
+});
+
+
+bot.on("text", (msg) => {
+    // console.log('msg :', msg);
+    const chatId = msg.chat.id;
+
+    let hello = "привет";
+    if (msg.text.toString().toLowerCase().indexOf(hello) === 0) { // только если слово "привет" идёт первым
+        let name = msg.from.first_name;
+        bot.sendMessage(chatId, `Привет дорогой пользователь ${name}`);
+    }
+
+    let bye = "пока";
+    if (msg.text.toString().toLowerCase().includes(bye)) { // если фраза содержит слово "пока" в любом месте
+        let name = msg.from.first_name;
+        bot.sendMessage(chatId, `Надеюсь ещё увидимся, пока ${name}`);
+    }
+
+    let location = "location";
+    if (msg.text.toString().toLowerCase().indexOf(location) === 0) {
+        bot.sendLocation(msg.chat.id, 59.127406, 37.906920);
+        bot.sendMessage(msg.chat.id, "Here is the Cherepovets");
+
+    }
+
+    let google = "google";
+    if (msg.text.toString().toLowerCase().includes(google)) {
+        const opts = {
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [
+                        { text: "Google", url: "http://google.com" },
+                        { text: "Может Яндекс?", url: "http://ya.ru" }
+                    ],
+                ]
+            })
+        };
+
+        bot.sendMessage(chatId, "Кто сказал Google?", opts);
+    }
 });
 
 bot.onText(/Получить картинку/, (msg) => {
@@ -288,3 +326,4 @@ process.on("unhandledRejection", (error) => {
     console.log("MSG:", error.message);
     console.log("STACK:", error.stack);
 });
+
