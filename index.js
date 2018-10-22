@@ -150,8 +150,8 @@ bot.on("text", (msg) => {
             reply_markup: JSON.stringify({
                 inline_keyboard: [
                     [
-                        { text: "Google", url: "http://google.com" },
-                        { text: "Может Яндекс?", url: "http://ya.ru" }
+                        { text: "𝑮 Google", url: "http://google.com" },
+                        { text: "Может 𝘠 Яндекс?", url: "http://ya.ru" }
                     ],
                 ]
             })
@@ -159,6 +159,45 @@ bot.on("text", (msg) => {
 
         bot.sendMessage(chatId, "Кто сказал Google?", opts);
     }
+});
+
+bot.onText(/\/inline/, (msg) => {
+    const chatId = msg.chat.id;
+    var opts = {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Кнопка", callback_data: "кнопка" }],
+                [{ text: "1", callback_data: "1" }, { text: "2", callback_data: "2" }, { text: "3", callback_data: "3" }],
+                [{ text: "4", callback_data: "4" }, { text: "5", callback_data: "5" }]
+            ]
+        }
+
+    };
+    bot.sendMessage(chatId, "Выберите цифру", opts);
+});
+
+bot.on("callback_query", (callbackQuery) => {
+    // const chatId = callbackQuery.message.chat.id;
+    const callback_query_id = callbackQuery.id; // это важно!! для .answerCallbackQuery() нужен именно callback_query_id, а не chatId
+    console.log("callbackQuery", callbackQuery);
+    let data = callbackQuery.data;
+    // Чисто для примера как можно обрабатывать запрос
+    if (data === "кнопка") {
+        const opts = {
+            text: "Вы нажали на кнопку",
+            // show_alert: true,
+        };
+        bot.answerCallbackQuery(callback_query_id, opts);
+    } else {
+        console.log('Нажали :', data);
+        const opts = {
+            text: `Вы нажали ${data}`,
+            // show_alert: true,
+        };
+        bot.answerCallbackQuery(callback_query_id, opts);
+    }
+
+    // bot.sendMessage(chatId, "Привет из callback_query");
 });
 
 bot.onText(/Получить картинку/, (msg) => {
