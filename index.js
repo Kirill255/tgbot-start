@@ -413,6 +413,41 @@ bot.on("sticker", (msg) => {
         });
 });
 
+// How to get the response of the keyboard selection or user input
+// https://github.com/yagop/node-telegram-bot-api/issues/108#issuecomment-218765423
+// https://github.com/yagop/node-telegram-bot-api/issues/356#issuecomment-311276792
+// если вам не нужно будет удалять обработчик, то можно и не выносить регулярные выражения в переменную, как в примерах выше
+const regexp1 = /^\/selectseries/;
+bot.onText(regexp1, (msg, match) => {
+    bot.sendMessage(msg.chat.id, "Select a serie", {
+        "reply_markup": {
+            "keyboard": [
+                [{ text: "Да" }, { text: "Нет" }]
+            ],
+            one_time_keyboard: true,
+            resize_keyboard: true
+        }
+    });
+
+    const regexp2 = /.+/; // важно!! сохранить regexp в переменную, чтобы была на него ссылка, по которой мы потом удалим обработчик
+    bot.onText(regexp2, (msg, match) => {
+        bot.sendMessage(msg.chat.id, "You selected " + match, {
+            "reply_markup": {
+                // "remove_keyboard": true // удалим предыдущее меню с выбором [Да-Нет] или просто вызовем новое меню
+                keyboard: [
+                    ["/menu"]
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: true
+            }
+        });
+        console.log('match :', match);
+        bot.removeTextListener(regexp2); // удаляем обработчик
+    });
+});
+
+
+
 
 bot.on('polling_error', (error) => {
     console.log("=== polling_error ===");
