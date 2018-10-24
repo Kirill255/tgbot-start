@@ -1,10 +1,9 @@
-
 require("dotenv").config();
 
 const fs = require("fs");
 const express = require("express");
-const fetch = require('node-fetch');
-const request = require('request');
+const fetch = require("node-fetch");
+const request = require("request");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -13,7 +12,7 @@ process.env.NTBA_FIX_319 = 1;
 // temporally fix https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files
 process.env.NTBA_FIX_350 = 1;
 
-const TelegramBot = require('node-telegram-bot-api');
+const TelegramBot = require("node-telegram-bot-api");
 
 let TOKEN = process.env.TOKEN || "";
 const PROXY = process.env.PROXY || ""; // https://hidemyna.me/ru/proxy-list/?type=s#list
@@ -58,7 +57,8 @@ app.listen(PORT, () => console.log("Server start"));
 // библиотека node-telegram-bot-api при отправке файлов работает со стримами, буффером, урлом https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files, поэтому для отправки файлов вам нужно на это ориентироваться, например библиотека request очень хорошо работает со стримами, можно получить файл простым запросом `const file = request(url);` и дальше сразу передать его боту, а например библиотека node-fetch может работать с буффером, поэтому после получения файла, нужно сначала преобразовать его в буффер, а затем передовать боту ( помоему она может работать и со стримами, но не так очевидно как request ), в общем при выборе библиотеки для запросов, нужно понимать как они работают под капотом и какие возможности предоставляют
 
 
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/i, (msg) => {
+    const chatId = msg.chat.id;
     const opts = {
         reply_markup: JSON.stringify({
             resize_keyboard: true,
@@ -68,10 +68,10 @@ bot.onText(/\/start/, (msg) => {
             ]
         })
     };
-    bot.sendMessage(msg.chat.id, "Welcome", opts);
+    bot.sendMessage(chatId, "Welcome", opts);
 });
 
-bot.onText(/\/menu/, (msg) => {
+bot.onText(/\/menu/i, (msg) => {
     const chatId = msg.chat.id;
     const opts = {
         reply_to_message_id: msg.message_id,
@@ -88,7 +88,7 @@ bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(chatId, 'Меню заказывали?', opts);
 });
 
-bot.onText(/\/help/, (msg) => {
+bot.onText(/\/help/i, (msg) => {
     const chatId = msg.chat.id;
     const opts = {
         reply_markup: JSON.stringify({
@@ -102,9 +102,8 @@ bot.onText(/\/help/, (msg) => {
     bot.sendMessage(chatId, 'Просто нажмите меню!', opts);
 });
 
-
 // Listen for any kind of message. There are different kinds of messages.
-bot.on('message', (msg) => {
+bot.on("message", (msg) => {
     const chatId = msg.chat.id;
     // console.log('msg :', msg);
 
@@ -119,7 +118,7 @@ bot.on('message', (msg) => {
                 // удалить сообщение в приватном чате с ботом нельзя, только группы и каналы https://t.me/botoid/401183 , тоесть только когда вашего бота добавят в канал и там он сможет удалять сообщения содержащие мат
                 if (msg.chat.type !== "private") {
                     // bot.deleteMessage(chatId, messageId); // https://github.com/yagop/node-telegram-bot-api/issues/653#issuecomment-424701973
-                    setTimeout(() => { bot.deleteMessage(msg.chat.id, msg.message_id); }, 1500); // желательно сделать задержку при удалении
+                    setTimeout(() => { bot.deleteMessage(chatId, messageId); }, 1500); // желательно сделать задержку при удалении
 
                 }
                 bot.sendMessage(chatId, `${name} не материтесь!`);
@@ -128,13 +127,12 @@ bot.on('message', (msg) => {
         });
     }
 
-    bot.sendMessage(chatId, "Я клёвый бот");
+    // bot.sendMessage(chatId, "Я клёвый бот"); // будет отвечать на вообще любое сообщение в чат
 });
 
-
 bot.on("text", (msg) => {
-    // console.log('msg :', msg);
     const chatId = msg.chat.id;
+    // console.log('msg :', msg);
 
     let hello = "привет";
     if (msg.text.toString().toLowerCase().indexOf(hello) === 0) { // только если слово "привет" идёт первым
@@ -150,8 +148,8 @@ bot.on("text", (msg) => {
 
     let location = "location";
     if (msg.text.toString().toLowerCase().indexOf(location) === 0) {
-        bot.sendLocation(msg.chat.id, 59.127406, 37.906920);
-        bot.sendMessage(msg.chat.id, "Here is the Cherepovets");
+        bot.sendLocation(chatId, 59.127406, 37.906920);
+        bot.sendMessage(chatId, "Here is the Cherepovets");
 
     }
 
@@ -167,22 +165,20 @@ bot.on("text", (msg) => {
                 ]
             })
         };
-
         bot.sendMessage(chatId, "Кто сказал Google?", opts);
     }
 });
 
-bot.onText(/\/inline/, (msg) => {
+bot.onText(/\/inline/i, (msg) => {
     const chatId = msg.chat.id;
     var opts = {
-        reply_markup: {
+        reply_markup: JSON.stringify({
             inline_keyboard: [
                 [{ text: "Кнопка", callback_data: "кнопка" }],
                 [{ text: "1", callback_data: "1" }, { text: "2", callback_data: "2" }, { text: "3", callback_data: "3" }],
                 [{ text: "4", callback_data: "4" }, { text: "5", callback_data: "5" }]
             ]
-        }
-
+        })
     };
     bot.sendMessage(chatId, "Выберите цифру", opts);
 });
@@ -190,7 +186,7 @@ bot.onText(/\/inline/, (msg) => {
 bot.on("callback_query", (callbackQuery) => {
     // const chatId = callbackQuery.message.chat.id;
     const callback_query_id = callbackQuery.id; // это важно!! для .answerCallbackQuery() нужен именно callback_query_id, а не chatId
-    console.log("callbackQuery", callbackQuery);
+    console.log("callbackQuery: ", callbackQuery);
     let data = callbackQuery.data;
     // Чисто для примера как можно обрабатывать запрос
     if (data === "кнопка") {
@@ -200,7 +196,7 @@ bot.on("callback_query", (callbackQuery) => {
         };
         bot.answerCallbackQuery(callback_query_id, opts);
     } else {
-        console.log('Нажали :', data);
+        console.log("Нажали: ", data);
         const opts = {
             text: `Вы нажали ${data}`,
             // show_alert: true,
@@ -231,7 +227,7 @@ bot.onText(/Получить картинку/, (msg) => {
     bot.sendMessage(chatId, 'Картинку с кем?', opts);
 });
 
-bot.onText(/С собачкой/, async (msg) => {
+bot.onText(/С собачкой/, async (msg) => { // тут нужен async, если мы используем пример с await, в другом случае не нужен конечно
     const chatId = msg.chat.id;
 
     // напрямую передаём просто ссылку на файл
@@ -267,10 +263,10 @@ bot.onText(/С собачкой/, async (msg) => {
 
     // request (works by default with streams)
 
-    const url = 'http://infobreed.ru/foto_breed/126/pincher3.jpg';
+    const url = "http://infobreed.ru/foto_breed/126/pincher3.jpg";
     const photo = request(url);
     // bot.sendPhoto(chatId, photo); // send just photo, without caption
-    bot.sendPhoto(chatId, photo, { // send as image
+    bot.sendPhoto(chatId, photo, { // send with caption
         caption: "Вот собачка!"
     });
 });
@@ -291,6 +287,8 @@ bot.onText(/С мишкой/, (msg) => {
     });
 });
 
+// к сожалению, отсылаться будет время сервера на котором развёрнут бот, при локальной разработке будет локальное время
+// чтобы отсылать правильное время любым пользователям, нужно запрашивать их тайм-зону, и уже на её основе высчитывать время
 bot.onText(/Сколько время/, (msg) => {
     const chatId = msg.chat.id;
     let time = new Date().toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -299,7 +297,7 @@ bot.onText(/Сколько время/, (msg) => {
 
 bot.onText(/Получить аудио/, (msg) => {
     // From HTTP request
-    const url = 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg';
+    const url = "https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg";
     const audio = request(url);
     bot.sendAudio(msg.chat.id, audio);
 });
@@ -309,15 +307,16 @@ bot.onText(/Погода/, (msg) => {
     // console.log('msg :', msg);
     const opts = {
         reply_to_message_id: msg.message_id,
-        "reply_markup": {
+        "reply_markup": JSON.stringify({
             "remove_keyboard": true
-        }
+        })
     };
     bot.sendMessage(chatId, "Введите город", opts);
 
-    const regexp2 = /.+/;
-    bot.onText(regexp2, (msg, match) => {
+    const regexp2 = /.+/; // сохраним ссылку на regexp
+    bot.onText(regexp2, async (msg, match) => { // async
         console.log('match :', match);
+        // console.log('match[0] :', match[0]);
 
         // https://openweathermap.org
         // forecast - прогноз на неделю, weather - погода сейчас
@@ -339,59 +338,45 @@ bot.onText(/Погода/, (msg) => {
         let finalUrl = encodeURI(requestUrl);
         // console.log('requestUrl :', requestUrl);
         // console.log('finalUrl :', finalUrl);
-        fetch(finalUrl)
-            .then((response) => response.json())
-            .then((response) => {
-                // console.log('response :', response);
-                if (response.cod === 200) {
-                    let city_name = response.name;
-                    let temp = response.main.temp;
-                    let description = response.weather[0].description;
-                    let grad = "\xB0"; // &deg; °
-                    let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
-                    // console.log('message :', message);
-                    const opts = {
-                        "reply_markup": {
-                            keyboard: [
-                                ["/menu"]
-                            ],
-                            resize_keyboard: true,
-                            one_time_keyboard: true
-                        }
-                    };
-                    bot.sendMessage(chatId, message, opts);
-                } else if (response.cod === 429) {
-                    console.log('response 429 :', response);
-                    // "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
-                    const opts = {
-                        "reply_markup": {
-                            keyboard: [
-                                ["/menu"]
-                            ],
-                            resize_keyboard: true,
-                            one_time_keyboard: true
-                        }
-                    };
-                    bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
-                } else {
-                    console.log('response else :', response);
-                    let message = "Город не найден, попробуйте изменить регистр или язык ввода";
-                    const opts = {
-                        "reply_markup": {
-                            keyboard: [
-                                ["/menu"]
-                            ],
-                            resize_keyboard: true,
-                            one_time_keyboard: true
-                        }
-                    };
-                    bot.sendMessage(chatId, message, opts);
-                }
+
+        const opts = {
+            "reply_markup": JSON.stringify({
+                keyboard: [
+                    ["/menu"]
+                ],
+                resize_keyboard: true
             })
-            .catch((error) => console.log('error: ', error));
+        };
 
+        try {
+            let data = await fetch(finalUrl);
+            let response = await data.json();
+            console.log('response :', response);
 
-        bot.removeTextListener(regexp2);
+            if (response.cod === 200) {
+                let city_name = response.name;
+                let temp = response.main.temp;
+                let description = response.weather[0].description;
+                let grad = "\xB0"; // &deg; °
+                let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
+                // console.log('message :', message);
+
+                bot.sendMessage(chatId, message, opts);
+            } else if (response.cod === 429) {
+                console.log('response 429 :', response);
+                // code 429 - "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
+
+                bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
+            } else {
+                console.log("response else: ", response);
+
+                bot.sendMessage(chatId, "Город не найден, попробуйте изменить регистр или язык ввода", opts);
+            }
+        } catch (error) {
+            console.log("error: ", error);
+        }
+
+        bot.removeTextListener(regexp2); // удаляем слушателя по regexp ссылке
     });
 
 });
@@ -434,7 +419,7 @@ bot.on("contact", (msg) => {
     bot.sendContact(chatId, phoneNumber, firstName, opts)
 });
 
-bot.on('location', (msg) => {
+bot.on("location", (msg) => {
     const chatId = msg.chat.id;
     // console.log('msg :', msg);
     let location = msg.location;
@@ -473,8 +458,7 @@ bot.on("sticker", (msg) => {
                 .then(stickersSet => {
                     // console.log('stickersSet :', stickersSet);
                     let stickers = stickersSet.stickers; // берём массив со стикерами
-                    let packLength = stickers.length; // его длина
-                    let stickerItem = stickers[Math.floor(Math.random() * packLength)]; // рендомный стикер-объект из этого массива
+                    let stickerItem = stickers[Math.floor(Math.random() * stickers.length)]; // рендомный стикер-объект из этого массива
                     let stickerId = stickerItem.file_id; // его id-name
                     bot.sendSticker(chatId, stickerId);
                 });
@@ -488,36 +472,36 @@ bot.on("sticker", (msg) => {
 const regexp1 = /^\/selectseries/;
 bot.onText(regexp1, (msg, match) => {
     bot.sendMessage(msg.chat.id, "Select a serie", {
-        "reply_markup": {
+        "reply_markup": JSON.stringify({
             "keyboard": [
                 [{ text: "Да" }, { text: "Нет" }]
             ],
             one_time_keyboard: true,
             resize_keyboard: true
-        }
+        })
     });
 
     const regexp2 = /.+/; // важно!! сохранить regexp в переменную, чтобы была на него ссылка, по которой мы потом удалим обработчик
     bot.onText(regexp2, (msg, match) => {
+        console.log("match :", match);
         bot.sendMessage(msg.chat.id, "You selected " + match, {
-            "reply_markup": {
+            "reply_markup": JSON.stringify({
                 // "remove_keyboard": true // удалим предыдущее меню с выбором [Да-Нет] или просто вызовем новое меню
                 keyboard: [
                     ["/menu"]
                 ],
                 resize_keyboard: true,
                 one_time_keyboard: true
-            }
+            })
         });
-        console.log('match :', match);
+
         bot.removeTextListener(regexp2); // удаляем обработчик
     });
 });
 
 
 
-
-bot.on('polling_error', (error) => {
+bot.on("polling_error", (error) => {
     console.log("=== polling_error ===");
     console.log(error);
 });
@@ -540,4 +524,3 @@ process.on("unhandledRejection", (error) => {
     console.log("MSG:", error.message);
     console.log("STACK:", error.stack);
 });
-
