@@ -308,51 +308,91 @@ bot.onText(/Погода/, (msg) => {
     const chatId = msg.chat.id;
     console.log('msg :', msg);
     const opts = {
-        reply_to_message_id: msg.message_id
+        reply_to_message_id: msg.message_id,
+        "reply_markup": {
+            "remove_keyboard": true
+        }
     };
-    bot.sendMessage(chatId, "Ожидайте ответа", opts);
+    bot.sendMessage(chatId, "Введите город", opts);
 
-    // https://openweathermap.org
-    // forecast - прогноз на неделю, weather - погода сейчас
-    // http://api.openweathermap.org/data/2.5/forecast?id=524901&APPID={APIKEY} // по id города 
-    // http://api.openweathermap.org/data/2.5/weather?q=London&APPID={APIKEY} // по названию
+    const regexp2 = /.+/;
+    bot.onText(regexp2, (msg, match) => {
+        console.log('match :', match);
 
-    // let city = "Москва";
-    // let city = "Moscow";
-    let city = "Череповец";
-    let unit = "metric";
-    let lang = "ru";
-    let urlWeatherAPI = "http://api.openweathermap.org/data/2.5/weather?q=";
-    const APIKEYOWM = process.env.APIKEYOWM || "";
-    let requestUrl = `${urlWeatherAPI}${city}&APPID=${APIKEYOWM}&units=${unit}&lang=${lang}`;
-    // в запросе город может быть на русском языке, поэтому желательно экранировать URL чтобы избежать ошибок
-    // error:  TypeError [ERR_UNESCAPED_CHARACTERS]: Request path contains unescaped characters
-    // https://stackoverflow.com/questions/75980/when-are-you-supposed-to-use-escape-instead-of-encodeuri-encodeuricomponent
-    let finalUrl = encodeURI(requestUrl);
-    // console.log('requestUrl :', requestUrl);
-    // console.log('finalUrl :', finalUrl);
-    fetch(finalUrl)
-        .then((response) => response.json())
-        .then((response) => {
-            // console.log('response :', response);
-            if (response.cod === 200) {
-                let city_name = response.name;
-                let temp = response.main.temp;
-                let description = response.weather[0].description;
-                let grad = "\xB0"; // &deg; °
-                let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
-                // console.log('message :', message);
-                bot.sendMessage(chatId, message), opts;
-            } else if (response.cod === 429) {
-                console.log('response 429 :', response);
-                // "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
-                // bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже");
-            } else {
-                console.log('response else :', response);
-                // bot.sendMessage(chatId, "Упс, что-то пошло не так");
-            }
-        })
-        .catch((error) => console.log('error: ', error));
+        // https://openweathermap.org
+        // forecast - прогноз на неделю, weather - погода сейчас
+        // http://api.openweathermap.org/data/2.5/forecast?id=524901&APPID={APIKEY} // по id города 
+        // http://api.openweathermap.org/data/2.5/weather?q=London&APPID={APIKEY} // по названию
+
+        // let city = "Москва";
+        // let city = "Moscow";
+        // let city = "Череповец";
+        let city = match;
+        let unit = "metric";
+        let lang = "ru";
+        let urlWeatherAPI = "http://api.openweathermap.org/data/2.5/weather?q=";
+        const APIKEYOWM = process.env.APIKEYOWM || "";
+        let requestUrl = `${urlWeatherAPI}${city}&APPID=${APIKEYOWM}&units=${unit}&lang=${lang}`;
+        // в запросе город может быть на русском языке, поэтому желательно экранировать URL чтобы избежать ошибок
+        // error:  TypeError [ERR_UNESCAPED_CHARACTERS]: Request path contains unescaped characters
+        // https://stackoverflow.com/questions/75980/when-are-you-supposed-to-use-escape-instead-of-encodeuri-encodeuricomponent
+        let finalUrl = encodeURI(requestUrl);
+        // console.log('requestUrl :', requestUrl);
+        // console.log('finalUrl :', finalUrl);
+        fetch(finalUrl)
+            .then((response) => response.json())
+            .then((response) => {
+                // console.log('response :', response);
+                if (response.cod === 200) {
+                    let city_name = response.name;
+                    let temp = response.main.temp;
+                    let description = response.weather[0].description;
+                    let grad = "\xB0"; // &deg; °
+                    let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
+                    // console.log('message :', message);
+                    const opts = {
+                        "reply_markup": {
+                            keyboard: [
+                                ["/menu"]
+                            ],
+                            resize_keyboard: true,
+                            one_time_keyboard: true
+                        }
+                    };
+                    bot.sendMessage(chatId, message, opts);
+                } else if (response.cod === 429) {
+                    console.log('response 429 :', response);
+                    // "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
+                    const opts = {
+                        "reply_markup": {
+                            keyboard: [
+                                ["/menu"]
+                            ],
+                            resize_keyboard: true,
+                            one_time_keyboard: true
+                        }
+                    };
+                    bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
+                } else {
+                    console.log('response else :', response);
+                    let message = "Город не найден, попробуйте изменить регистр или язык ввода";
+                    const opts = {
+                        "reply_markup": {
+                            keyboard: [
+                                ["/menu"]
+                            ],
+                            resize_keyboard: true,
+                            one_time_keyboard: true
+                        }
+                    };
+                    bot.sendMessage(chatId, message, opts);
+                }
+            })
+            .catch((error) => console.log('error: ', error));
+
+
+        bot.removeTextListener(regexp2);
+    });
 
 });
 
