@@ -79,9 +79,9 @@ bot.onText(/\/menu/, (msg) => {
             resize_keyboard: true,
             one_time_keyboard: true,
             keyboard: [
-                [{ text: "Оставить свой телефон", request_contact: true }],
-                [{ text: "Получить картинку" }, { text: "Получить аудио" }],
-                ["Сколько время", "Погода"],
+                [{ text: "Оставить контакты" }],
+                [{ text: "Получить картинку" }, { text: "Получить аудио" }], // можно так
+                ["Сколько время", "Погода"], // или так
             ]
         })
     };
@@ -106,7 +106,7 @@ bot.onText(/\/help/, (msg) => {
 // Listen for any kind of message. There are different kinds of messages.
 bot.on('message', (msg) => {
     const chatId = msg.chat.id;
-    console.log('msg :', msg);
+    // console.log('msg :', msg);
 
     // событие "message" универсальное, срабатывает на сообщения любого типа, для обработки конкретного типа лучше всего воспользоваться нужным событием https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#events , при использовании события "message" стоит делать некоторые проверки, например при описании логики ответа на текстовые сообщения стоит проверять `if (msg.text)`, так как без этой проверки будет выпадать ошибка, при принятии какого-либа сообщения с типом у которого нет поля "text", например "Contact"
     if (msg.text) {
@@ -306,7 +306,7 @@ bot.onText(/Получить аудио/, (msg) => {
 
 bot.onText(/Погода/, (msg) => {
     const chatId = msg.chat.id;
-    console.log('msg :', msg);
+    // console.log('msg :', msg);
     const opts = {
         reply_to_message_id: msg.message_id,
         "reply_markup": {
@@ -396,6 +396,22 @@ bot.onText(/Погода/, (msg) => {
 
 });
 
+// https://core.telegram.org/bots/api#keyboardbutton
+bot.onText(/Оставить контакты/, (msg) => {
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                [{ text: "Оставить свой телефон", request_contact: true }, { text: "Оставить своё местоположение", request_location: true }],
+                ["/menu"]
+            ]
+        })
+    };
+    bot.sendMessage(msg.chat.id, "Выберите вариант", opts);
+});
+
 bot.on("contact", (msg) => {
     const chatId = msg.chat.id;
     // console.log('msg :', msg);
@@ -404,7 +420,7 @@ bot.on("contact", (msg) => {
     // можно взять сразу целый объект или отдельно по свойствам
     let user_info = msg.contact;
     // let phone = msg.contact.phone_number;
-    console.log('user_info :', user_info);
+    console.log('user_info: ', user_info);
 
 
     const opts = {
@@ -416,6 +432,18 @@ bot.on("contact", (msg) => {
     let phoneNumber = "+7 987 654 32 11"
     let firstName = "Mr.Bot"
     bot.sendContact(chatId, phoneNumber, firstName, opts)
+});
+
+bot.on('location', (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+    let location = msg.location;
+    console.log("location: ", location);
+
+    const opts = {
+        reply_to_message_id: msg.message_id
+    };
+    bot.sendMessage(chatId, "Спасибо за ваше местоположение!", opts);
 });
 
 bot.on("sticker", (msg) => {
