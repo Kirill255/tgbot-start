@@ -303,9 +303,9 @@ bot.onText(/Погода/, (msg) => {
     };
     bot.sendMessage(chatId, "Введите город", opts);
 
-    const regexp2 = /.+/; // сохраним ссылку на regexp
-    bot.onText(regexp2, async (msg, match) => { // async
-        console.log('match :', match);
+    // метода .once() почему-то нет в доке, он позволяет подписаться на событие один раз, поэтому нет необходимости удалять слушателя после выполнения метода единожды, как было в случае с .onText(regexp)
+    bot.once("message", async (msg) => { // async
+        // console.log('match :', match);
         // console.log('match[0] :', match[0]);
 
         // https://openweathermap.org
@@ -316,57 +316,59 @@ bot.onText(/Погода/, (msg) => {
         // let city = "Москва";
         // let city = "Moscow";
         // let city = "Череповец";
-        let city = match;
-        let unit = "metric";
-        let lang = "ru";
-        let urlWeatherAPI = "http://api.openweathermap.org/data/2.5/weather?q=";
-        const APIKEYOWM = process.env.APIKEYOWM || "";
-        let requestUrl = `${urlWeatherAPI}${city}&APPID=${APIKEYOWM}&units=${unit}&lang=${lang}`;
-        // в запросе город может быть на русском языке, поэтому желательно экранировать URL чтобы избежать ошибок
-        // error:  TypeError [ERR_UNESCAPED_CHARACTERS]: Request path contains unescaped characters
-        // https://stackoverflow.com/questions/75980/when-are-you-supposed-to-use-escape-instead-of-encodeuri-encodeuricomponent
-        let finalUrl = encodeURI(requestUrl);
-        // console.log('requestUrl :', requestUrl);
-        // console.log('finalUrl :', finalUrl);
+        // let city = match;
+        if (msg.text) {
+            let city = msg.text;
+            let unit = "metric";
+            let lang = "ru";
+            let urlWeatherAPI = "http://api.openweathermap.org/data/2.5/weather?q=";
+            const APIKEYOWM = process.env.APIKEYOWM || "";
+            let requestUrl = `${urlWeatherAPI}${city}&APPID=${APIKEYOWM}&units=${unit}&lang=${lang}`;
+            // в запросе город может быть на русском языке, поэтому желательно экранировать URL чтобы избежать ошибок
+            // error:  TypeError [ERR_UNESCAPED_CHARACTERS]: Request path contains unescaped characters
+            // https://stackoverflow.com/questions/75980/when-are-you-supposed-to-use-escape-instead-of-encodeuri-encodeuricomponent
+            let finalUrl = encodeURI(requestUrl);
+            // console.log('requestUrl :', requestUrl);
+            // console.log('finalUrl :', finalUrl);
 
-        const opts = {
-            "reply_markup": JSON.stringify({
-                keyboard: [
-                    ["/menu"]
-                ],
-                resize_keyboard: true
-            })
-        };
+            const opts = {
+                "reply_markup": JSON.stringify({
+                    keyboard: [
+                        ["/menu"]
+                    ],
+                    resize_keyboard: true
+                })
+            };
 
-        try {
-            let data = await fetch(finalUrl);
-            let response = await data.json();
-            console.log('response :', response);
+            try {
+                let data = await fetch(finalUrl);
+                let response = await data.json();
+                console.log('response :', response);
 
-            if (response.cod === 200) {
-                let city_name = response.name;
-                let temp = response.main.temp;
-                let description = response.weather[0].description;
-                let grad = "\xB0"; // &deg; °
-                let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
-                // console.log('message :', message);
+                if (response.cod === 200) {
+                    let city_name = response.name;
+                    let temp = response.main.temp;
+                    let description = response.weather[0].description;
+                    let grad = "\xB0"; // &deg; °
+                    let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
+                    // console.log('message :', message);
 
-                bot.sendMessage(chatId, message, opts);
-            } else if (response.cod === 429) {
-                console.log('response 429 :', response);
-                // code 429 - "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
+                    bot.sendMessage(chatId, message, opts);
+                } else if (response.cod === 429) {
+                    console.log('response 429 :', response);
+                    // code 429 - "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
 
-                bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
-            } else {
-                console.log("response else: ", response);
+                    bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
+                } else {
+                    console.log("response else: ", response);
 
-                bot.sendMessage(chatId, "Город не найден, попробуйте изменить регистр или язык ввода", opts);
+                    bot.sendMessage(chatId, "Город не найден, попробуйте изменить регистр или язык ввода", opts);
+                }
+            } catch (error) {
+                console.log("error: ", error);
             }
-        } catch (error) {
-            console.log("error: ", error);
         }
 
-        bot.removeTextListener(regexp2); // удаляем слушателя по regexp ссылке
     });
 
 });
