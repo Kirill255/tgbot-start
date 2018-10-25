@@ -79,7 +79,7 @@ bot.onText(/\/menu/i, (msg) => {
             resize_keyboard: true,
             one_time_keyboard: true,
             keyboard: [
-                [{ text: "Оставить контакты" }],
+                [{ text: "Оставить контакты" }, { text: "Contact Us" }],
                 [{ text: "Получить картинку" }, { text: "Получить аудио" }], // можно так
                 ["Сколько время", "Погода"], // или так
             ]
@@ -490,6 +490,51 @@ bot.onText(regexp1, (msg, match) => {
         bot.removeTextListener(regexp2); // удаляем обработчик
     });
 });
+
+// получаем обратную связь от пользователя
+bot.onText(/Contact Us/, (msg) => {
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            keyboard: [
+                ["/menu"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+        })
+    };
+    bot.sendMessage(msg.chat.id, "Напишите ваше сообщение:", opts);
+    getmessage1();
+});
+// Functions
+const getmessage = async () => {
+    await new Promise((resolve, reject) => {
+        bot.once("message", (msg) => {
+            // console.log('msg :', msg);
+            // получаем сообщение от пользователя и дальше можно или в базу куда-то сохранять или пересылать в другой чат
+            let name = msg.from.first_name;
+            let userId = msg.from.id;
+            console.log(`Сообщение от пользователя ${name} (id:${userId}) : ` + msg.text)
+            const opts = {
+                reply_to_message_id: msg.message_id,
+                reply_markup: JSON.stringify({
+                    keyboard: [
+                        ["/menu"]
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                })
+            };
+            bot.sendMessage(msg.chat.id, "Спасибо, ваше сообщение принято!", opts);
+            resolve(true);
+        });
+    });
+    return;
+}
+
+const getmessage1 = async () => {
+    await getmessage();
+}
 
 
 
