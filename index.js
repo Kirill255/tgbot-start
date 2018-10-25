@@ -4,10 +4,13 @@
 
 const express = require("express");
 const app = express();
+const fetch = require("node-fetch");
 const PORT = process.env.PORT || 5000;
 
 // это временная мера, в следующем обновлении node-telegram-bot-api, это будет не нужно
 process.env.NTBA_FIX_319 = 1;   // fix cancellation of promises https://github.com/yagop/node-telegram-bot-api/issues/319. module.js:652:30
+// temporally fix https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#sending-files
+process.env.NTBA_FIX_350 = 1;
 
 const TelegramBot = require('node-telegram-bot-api');
 
@@ -47,11 +50,189 @@ app.listen(PORT, () => console.log("Server start"));
 
 
 // Listen for any kind of message. There are different kinds of messages.
-bot.on('message', (msg) => {
+bot.on("message", (msg) => {
     const chatId = msg.chat.id;
-    let time = new Date().toLocaleString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    // send a message to the chat acknowledging receipt of their message
+
+    if (msg.text) {
+        let swear_words = ["хуй", "лох", "чмо"]; // добавьте другие запрещённые матерные слова
+        let message = msg.text.toString().toLowerCase();
+        swear_words.some(sw_word => {
+            if (message.includes(sw_word)) {
+                let messageId = msg.message_id;
+                let name = msg.from.first_name;
+
+                if (msg.chat.type !== "private") {
+
+                    setTimeout(() => { bot.deleteMessage(chatId, messageId); }, 1500); // желательно сделать задержку при удалении
+
+                }
+                bot.sendMessage(chatId, `${name} не материтесь!`);
+                return true; // прерываем выполнение цикла some, нам не нужно проверять весь массив 
+            }
+        });
+    }
+
+});
+
+bot.onText(/\/start/i, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                ["/menu"],
+            ]
+        })
+    };
+    bot.sendMessage(chatId, "Welcome", opts);
+});
+
+bot.onText(/\/menu/i, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+            resize_keyboard: true,
+            one_time_keyboard: true,
+            keyboard: [
+                ["Время сервера", "Погода"]
+            ]
+        })
+    };
+    bot.sendMessage(chatId, 'Меню заказывали?', opts);
+});
+
+bot.on("text", (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+
+    let hello = "привет";
+    if (msg.text.toString().toLowerCase().indexOf(hello) === 0) { // только если слово "привет" идёт первым
+        let name = msg.from.first_name;
+        bot.sendMessage(chatId, `Привет дорогой пользователь ${name}`);
+    }
+
+    let bye = "пока";
+    if (msg.text.toString().toLowerCase().includes(bye)) { // если фраза содержит слово "пока" в любом месте
+        let name = msg.from.first_name;
+        bot.sendMessage(chatId, `Надеюсь ещё увидимся, пока ${name}`);
+    }
+
+    let google = "google";
+    if (msg.text.toString().toLowerCase().includes(google)) {
+        const opts = {
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [
+                        { text: "𝑮 Google", url: "http://google.com" },
+                        { text: "Может 𝘠 Яндекс?", url: "http://ya.ru" }
+                    ],
+                ]
+            })
+        };
+        bot.sendMessage(chatId, "Кто сказал Google?", opts);
+    }
+});
+
+bot.onText(/Время сервера/, (msg) => {
+    const chatId = msg.chat.id;
+    let time = (new Date()).toLocaleTimeString();
     bot.sendMessage(chatId, time);
+});
+
+bot.onText(/Погода/, (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+    const opts = {
+        reply_to_message_id: msg.message_id,
+        "reply_markup": JSON.stringify({
+            "remove_keyboard": true
+        })
+    };
+    bot.sendMessage(chatId, "Введите город", opts);
+
+    const regexp2 = /.+/; // сохраним ссылку на regexp
+    bot.onText(regexp2, async (msg, match) => { // async
+        console.log('match :', match);
+        // console.log('match[0] :', match[0]);
+
+        let city = match;
+        let unit = "metric";
+        let lang = "ru";
+        let urlWeatherAPI = "http://api.openweathermap.org/data/2.5/weather?q=";
+        const APIKEYOWM = process.env.APIKEYOWM || "";
+        let requestUrl = `${urlWeatherAPI}${city}&APPID=${APIKEYOWM}&units=${unit}&lang=${lang}`;
+
+        let finalUrl = encodeURI(requestUrl);
+        // console.log('requestUrl :', requestUrl);
+        // console.log('finalUrl :', finalUrl);
+
+        const opts = {
+            "reply_markup": JSON.stringify({
+                keyboard: [
+                    ["/menu"]
+                ],
+                resize_keyboard: true
+            })
+        };
+
+        try {
+            let data = await fetch(finalUrl);
+            let response = await data.json();
+            console.log('response :', response);
+
+            if (response.cod === 200) {
+                let city_name = response.name;
+                let temp = response.main.temp;
+                let description = response.weather[0].description;
+                let grad = "\xB0"; // &deg; °
+                let message = `Сейчас в городе ${city_name} ${temp}${grad}C и ${description}.`;
+                // console.log('message :', message);
+
+                bot.sendMessage(chatId, message, opts);
+            } else if (response.cod === 429) {
+                console.log('response 429 :', response);
+                // code 429 - "Your account is temporary blocked due to exceeding of requests limitation of your subscription type. 
+
+                bot.sendMessage(chatId, "Извините сервис не доступен, попробуйте позже", opts);
+            } else {
+                console.log("response else: ", response);
+
+                bot.sendMessage(chatId, "Город не найден, попробуйте изменить регистр или язык ввода", opts);
+            }
+        } catch (error) {
+            console.log("error: ", error);
+        }
+
+        bot.removeTextListener(regexp2); // удаляем слушателя по regexp ссылке
+    });
+
+});
+
+bot.on("sticker", (msg) => {
+    const chatId = msg.chat.id;
+    // console.log('msg :', msg);
+    const opts = {
+        reply_to_message_id: msg.message_id
+    };
+
+    bot.sendMessage(chatId, "Я люблю стикеры!", opts)
+        .then(_ => {
+
+            const stickerPacks = ["ci_cat", "GoodBoyResistance", "podslushano"]; // добавьте название любого стикерпака
+            let stickerPack = stickerPacks[Math.floor(Math.random() * stickerPacks.length)];
+            // console.log('stickerPack :', stickerPack);
+
+            bot.getStickerSet(stickerPack)
+                .then(stickersSet => {
+                    // console.log('stickersSet :', stickersSet);
+                    let stickers = stickersSet.stickers;
+                    let stickerItem = stickers[Math.floor(Math.random() * stickers.length)];
+                    let stickerId = stickerItem.file_id;
+                    bot.sendSticker(chatId, stickerId);
+                });
+        });
 });
 
 
