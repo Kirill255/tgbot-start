@@ -102,33 +102,6 @@ bot.onText(/\/help/i, (msg) => {
     bot.sendMessage(chatId, 'Просто нажмите меню!', opts);
 });
 
-// Listen for any kind of message. There are different kinds of messages.
-bot.on("message", (msg) => {
-    const chatId = msg.chat.id;
-    // console.log('msg :', msg);
-
-    // событие "message" универсальное, срабатывает на сообщения любого типа, для обработки конкретного типа лучше всего воспользоваться нужным событием https://github.com/yagop/node-telegram-bot-api/blob/master/doc/usage.md#events , при использовании события "message" стоит делать некоторые проверки, например при описании логики ответа на текстовые сообщения стоит проверять `if (msg.text)`, так как без этой проверки будет выпадать ошибка, при принятии какого-либа сообщения с типом у которого нет поля "text", например "Contact"
-    if (msg.text) {
-        let swear_words = ["хуй", "лох", "чмо"]; // добавьте другие запрещённые матерные слова
-        let message = msg.text.toString().toLowerCase();
-        swear_words.some(sw_word => {
-            if (message.includes(sw_word)) {
-                let messageId = msg.message_id;
-                let name = msg.from.first_name;
-                // удалить сообщение в приватном чате с ботом нельзя, только группы и каналы https://t.me/botoid/401183 , тоесть только когда вашего бота добавят в канал и там он сможет удалять сообщения содержащие мат
-                if (msg.chat.type !== "private") {
-                    // bot.deleteMessage(chatId, messageId); // https://github.com/yagop/node-telegram-bot-api/issues/653#issuecomment-424701973
-                    setTimeout(() => { bot.deleteMessage(chatId, messageId); }, 1500); // желательно сделать задержку при удалении
-
-                }
-                bot.sendMessage(chatId, `${name} не материтесь!`);
-                return true; // прерываем выполнение цикла some, нам не нужно проверять весь массив 
-            }
-        });
-    }
-
-    // bot.sendMessage(chatId, "Я клёвый бот"); // будет отвечать на вообще любое сообщение в чат
-});
 
 bot.on("text", (msg) => {
     const chatId = msg.chat.id;
@@ -167,6 +140,23 @@ bot.on("text", (msg) => {
         };
         bot.sendMessage(chatId, "Кто сказал Google?", opts);
     }
+
+    let swear_words = ["хуй", "лох", "чмо"]; // добавьте другие запрещённые матерные слова
+    let message = msg.text.toString().toLowerCase();
+    swear_words.some(sw_word => {
+        if (message.includes(sw_word)) {
+            let messageId = msg.message_id;
+            let name = msg.from.first_name;
+            // удалить сообщение в приватном чате с ботом нельзя, только группы и каналы https://t.me/botoid/401183 , тоесть только когда вашего бота добавят в канал и там он сможет удалять сообщения содержащие мат
+            if (msg.chat.type !== "private") {
+                // bot.deleteMessage(chatId, messageId); // https://github.com/yagop/node-telegram-bot-api/issues/653#issuecomment-424701973
+                setTimeout(() => { bot.deleteMessage(chatId, messageId); }, 1500); // желательно сделать задержку при удалении
+
+            }
+            bot.sendMessage(chatId, `${name} не материтесь!`);
+            return true; // прерываем выполнение цикла some, нам не нужно проверять весь массив 
+        }
+    });
 });
 
 bot.onText(/\/inline/i, (msg) => {
