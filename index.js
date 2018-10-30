@@ -96,7 +96,8 @@ bot.onText(/\/menu/i, (msg) => {
             resize_keyboard: true,
             one_time_keyboard: true,
             keyboard: [
-                ["Время сервера", "Погода"]
+                ["Время сервера", "Погода"],
+                ["Курс валют"]
             ]
         })
     };
@@ -180,7 +181,7 @@ bot.onText(/Погода/, (msg) => {
         try {
             let data = await fetch(finalUrl);
             let response = await data.json();
-            console.log('response :', response);
+            // console.log('response :', response);
 
             if (response.cod === 200) {
                 let city_name = response.name;
@@ -207,6 +208,52 @@ bot.onText(/Погода/, (msg) => {
 
         bot.removeTextListener(regexp2); // удаляем слушателя по regexp ссылке
     });
+
+});
+
+bot.onText(/Курс валют/, (msg) => {
+    let { id } = msg.chat;
+    bot.sendMessage(id, "Выберите валюту:", {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "Доллар", callback_data: "USD" }, { text: "Евро", callback_data: "EUR" }],
+            ]
+        }
+    })
+});
+
+bot.on("callback_query", async (query) => {
+    const { id } = query.message.chat;
+    const { data } = query;
+    bot.answerCallbackQuery(query.id, {
+        text: `Вы выбрали ${data}`
+    });
+
+    let base = data; // USD/EUR
+    let symbols = "RUB"; // RUB
+    let pair = `${base}_${symbols}`; // USD_RUB or EUR_RUB
+
+    // https://free.currencyconverterapi.com/api/v6/convert?q=USD_RUB&compact=y
+    // https://free.currencyconverterapi.com/api/v6/convert?q=EUR_RUB&compact=y
+
+    let url = "https://free.currencyconverterapi.com/api/v6/convert"
+    // let finalUrl = `${url}?q=${base}_${symbols}&compact=y`;
+    let finalUrl = `${url}?q=${pair}&compact=y`;
+    try {
+        let data = await fetch(finalUrl);
+        let response = await data.json();
+        // console.log('response :', response);
+        let val = response[pair].val;
+
+        let html = `Курс <em>${pair}:</em>\n<b>1</b> ${base} — <b>${val}</b> ${symbols}.`;
+        bot.sendMessage(id, html, {
+            parse_mode: "HTML"
+        });
+
+    } catch (error) {
+        console.log("error: ", error);
+        bot.sendMessage(id, "Извините, сервис временно не работает!");
+    }
 
 });
 
