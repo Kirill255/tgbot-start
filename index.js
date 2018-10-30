@@ -216,7 +216,7 @@ bot.onText(/Курс валют/, (msg) => {
     bot.sendMessage(id, "Выберите валюту:", {
         reply_markup: {
             inline_keyboard: [
-                [{ text: "Доллар", callback_data: "USD" }, { text: "Евро", callback_data: "EUR" }],
+                [{ text: "$ Доллар", callback_data: "USD" }, { text: "€ Евро", callback_data: "EUR" }],
             ]
         }
     })
