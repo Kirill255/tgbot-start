@@ -233,6 +233,13 @@ bot.on("callback_query", async (query) => {
     let symbols = "RUB"; // RUB
     let pair = `${base}_${symbols}`; // USD_RUB or EUR_RUB
 
+    // https://www.emojicopy.com/
+    let flag = {
+        "RUB": "🇷🇺",
+        "EUR": "🇪🇺",
+        "USD": "🇺🇸"
+    }
+
     // https://free.currencyconverterapi.com/api/v6/convert?q=USD_RUB&compact=y
     // https://free.currencyconverterapi.com/api/v6/convert?q=EUR_RUB&compact=y
 
@@ -245,7 +252,7 @@ bot.on("callback_query", async (query) => {
         // console.log('response :', response);
         let val = response[pair].val;
 
-        let html = `Курс <em>${pair}:</em>\n<b>1</b> ${base} — <b>${val}</b> ${symbols}.`;
+        let html = `Курс <em>${pair}:</em>\n<b>1</b>${flag[base]} ${base} 💱 <b>${val}</b>${flag[symbols]} ${symbols}.`;
         bot.sendMessage(id, html, {
             parse_mode: "HTML"
         });
